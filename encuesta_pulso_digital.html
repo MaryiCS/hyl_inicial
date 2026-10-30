@@ -209,14 +209,28 @@ function profileHTML(scores,title){
 const encode=r=>"HL1:"+btoa(unescape(encodeURIComponent(JSON.stringify(r))));
 const decode=c=>JSON.parse(decodeURIComponent(escape(atob(c.trim().replace(/^HL1:/,"")))));
 
-let db=null,user=null;
-(async()=>{
-  try{db=await window.claude?.use?.("db")}catch(e){db=null}
-  try{user=await window.claude?.use?.("user")}catch(e){user=null}
-  let owner=false;try{owner=user?!!(await user.isOwner()):false}catch(e){owner=false}
-  if((owner&&db)||!db){document.getElementById("tabs").hidden=!(owner&&db)&&location.hash!=="#resultados";}
-  if(!db&&location.hash==="#resultados")tabR.onclick();
-})();
+/* ---------- Supabase ---------- */
+const SB_URL="https://ifgsfijkvpotkenbpaka.supabase.co";
+const SB_KEY="PEGAR_AQUI_CLAVE_ANON";
+const sbH=t=>({apikey:SB_KEY,Authorization:"Bearer "+(t||SB_KEY),"Content-Type":"application/json"});
+let token=null,rows=[];
+try{token=sessionStorage.getItem("hl_tok")}catch(e){}
+async function sbInsert(r){
+  if(SB_KEY.startsWith("PEGAR"))throw new Error("sin clave");
+  const res=await fetch(SB_URL+"/rest/v1/respuestas",{method:"POST",headers:{...sbH(),Prefer:"return=minimal"},body:JSON.stringify({data:r})});
+  if(!res.ok)throw new Error(res.status);
+}
+async function sbLogin(email,password){
+  const res=await fetch(SB_URL+"/auth/v1/token?grant_type=password",{method:"POST",headers:{apikey:SB_KEY,"Content-Type":"application/json"},body:JSON.stringify({email,password})});
+  if(!res.ok)throw new Error("Correo o contraseña incorrectos");
+  token=(await res.json()).access_token;
+  try{sessionStorage.setItem("hl_tok",token)}catch(e){}
+}
+async function sbLoad(){
+  const res=await fetch(SB_URL+"/rest/v1/respuestas?select=data&order=created_at.asc&limit=5000",{headers:sbH(token)});
+  if(!res.ok)throw new Error(res.status);
+  return (await res.json()).map(x=>x.data);
+}
 
 form.addEventListener("submit",async e=>{
   e.preventDefault();
@@ -227,7 +241,7 @@ form.addEventListener("submit",async e=>{
   err.textContent="";
   const btn=document.getElementById("send");btn.disabled=true;btn.textContent="Enviando…";
   let saved=false;
-  if(db){try{await db.collection("respuestas").add(r);saved=true}catch(x){saved=false}}
+  try{await sbInsert(r);saved=true}catch(x){saved=false}
   showDone(r,saved);
 });
 
@@ -245,16 +259,33 @@ function showDone(r,saved){
 }
 
 /* ---------- Vista de resultados (solo propietaria) ---------- */
-let unsub=null,rows=[];
 const tabE=document.getElementById("tab-enc"),tabR=document.getElementById("tab-res");
 tabE.onclick=()=>{tabE.setAttribute("aria-selected","true");tabR.setAttribute("aria-selected","false");document.getElementById("view-res").hidden=true;document.getElementById("view-enc").style.display="flex"};
-tabR.onclick=()=>{tabR.setAttribute("aria-selected","true");tabE.setAttribute("aria-selected","false");document.getElementById("view-enc").style.display="none";document.getElementById("view-done").hidden=true;document.getElementById("view-res").hidden=false;
-  if(!db){renderRes();return}
-  if(!unsub){renderRes();unsub=db.collection("respuestas").onSnapshot(s=>{rows=s.docs.map(d=>d.data());renderRes()},()=>{})}};
+tabR.onclick=async()=>{tabR.setAttribute("aria-selected","true");tabE.setAttribute("aria-selected","false");document.getElementById("view-enc").style.display="none";document.getElementById("view-done").hidden=true;document.getElementById("view-res").hidden=false;
+  if(!token){renderLogin();return}
+  await refresh()};
+async function refresh(){try{rows=await sbLoad();renderRes()}catch(e){token=null;try{sessionStorage.removeItem("hl_tok")}catch(x){}renderLogin("La sesión expiró. Ingrese de nuevo.")}}
+function renderLogin(msg){
+  document.getElementById("view-res").innerHTML=`<form class="profile" id="login"><h2>Resultados del equipo</h2><p class="hint">Acceso solo para la facilitadora.</p><input type="email" id="lg-mail" placeholder="Correo" autocomplete="username" required style="font:15px var(--f-body);padding:10px 12px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink)"><input type="password" id="lg-pass" placeholder="Contraseña" autocomplete="current-password" required style="font:15px var(--f-body);padding:10px 12px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink)"><div class="actions"><button class="btn" type="submit">Ingresar</button><span class="err" id="lg-err" role="alert">${esc(msg||"")}</span></div></form>`;
+  document.getElementById("login").onsubmit=async e=>{e.preventDefault();const er=document.getElementById("lg-err");er.textContent="";try{await sbLogin(document.getElementById("lg-mail").value.trim(),document.getElementById("lg-pass").value);await refresh()}catch(x){er.textContent=x.message}};
+}
+function toolbar(){return `<div class="actions"><button class="btn secondary" id="t-ref" type="button">Actualizar</button><button class="btn secondary" id="t-csv" type="button">Exportar CSV</button><button class="btn secondary" id="t-out" type="button">Cerrar sesión</button></div>`}
+function bindToolbar(){
+  document.getElementById("t-ref").onclick=refresh;
+  document.getElementById("t-csv").onclick=exportCSV;
+  document.getElementById("t-out").onclick=()=>{token=null;try{sessionStorage.removeItem("hl_tok")}catch(x){}rows=[];renderLogin()};
+}
+function exportCSV(){
+  const cols=[...LIKERT,"freq","perc","tools","worry","pain","client","expect","area","fecha"];
+  const cell=v=>{v=Array.isArray(v)?v.join("; "):(v??"");v=String(v);return /[",\n;]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
+  const lines=[cols.join(",")].concat(rows.map(r=>cols.map(c=>cell(LIKERT.includes(c)?r.s?.[c]:c==="fecha"?r.t:r[c])).join(",")));
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["\ufeff"+lines.join("\n")],{type:"text/csv;charset=utf-8"}));a.download="pulso_digital_respuestas.csv";a.click();URL.revokeObjectURL(a.href);
+}
 
 function countMap(list){const m={};list.forEach(x=>{if(x)m[x]=(m[x]||0)+1});return Object.entries(m).sort((a,b)=>b[1]-a[1])}
 function bars(entries,total){return entries.map(([k,n])=>`<div class="row"><span class="lbl">${esc(k)}</span><span class="track"><i style="width:${n/total*100}%;background:var(--accent)"></i></span><span class="val">${n}</span></div>`).join("")}
-function renderRes(){
+function renderRes(){renderBody();document.getElementById("view-res").insertAdjacentHTML("afterbegin",toolbar());bindToolbar()}
+function renderBody(){
   const v=document.getElementById("view-res");const n=rows.length;
   if(!n){v.innerHTML=`<div class="profile"><h2>Aún no hay respuestas</h2><p class="hint">Cuando el equipo responda, aquí aparecerán el promedio por dimensión, el uso de IA, las preocupaciones y los comentarios abiertos. Si alguien le envió un código, péguelo abajo.</p></div>${pasteBox()}`;bindPaste();return}
   const per=rows.map(dimScores);const avg=DIMS.map((_,i)=>{const v=per.map(p=>p[i]).filter(x=>x);return v.length?v.reduce((a,b)=>a+b,0)/v.length:null});
@@ -275,9 +306,9 @@ function renderRes(){
 function pasteBox(){return `<div class="profile"><h2>Agregar respuestas recibidas por código</h2><label class="hint" for="paste">Pegue uno o varios códigos HL1:, uno por línea.</label><textarea id="paste"></textarea><div class="actions"><button class="btn secondary" id="paste-btn" type="button">Agregar</button><span class="hint" id="paste-msg"></span></div></div>`}
 function bindPaste(){const b=document.getElementById("paste-btn");if(!b)return;b.onclick=async()=>{
   const lines=document.getElementById("paste").value.split(/\s+/).filter(l=>l.startsWith("HL1:"));let ok=0,bad=0;
-  for(const l of lines){try{const r=decode(l);if(!r.s)throw 0;if(db)await db.collection("respuestas").add(r);else rows.push(r);ok++}catch(x){bad++}}
-  if(!db)renderRes();
-  document.getElementById("paste-msg").textContent=`${ok} agregadas${bad?`, ${bad} con error`:""}`;}}
+  for(const l of lines){try{const r=decode(l);if(!r.s)throw 0;await sbInsert(r);rows.push(r);ok++}catch(x){bad++}}
+  const m=`${ok} agregadas${bad?`, ${bad} con error`:""}`;renderRes();document.getElementById("paste-msg").textContent=m;}}
+if(location.hash==="#resultados"){document.getElementById("tabs").hidden=false;tabR.onclick()}
 updateProgress();
 </script>
 
