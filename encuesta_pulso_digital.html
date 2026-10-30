@@ -211,7 +211,7 @@ const decode=c=>JSON.parse(decodeURIComponent(escape(atob(c.trim().replace(/^HL1
 
 /* ---------- Supabase ---------- */
 const SB_URL="https://ifgsfijkvpotkenbpaka.supabase.co";
-const SB_KEY="PEGAR_AQUI_CLAVE_ANON";
+const SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlmZ3NmaWprdnBvdGtlbmJwYWthIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMzMjkzNjcsImV4cCI6MjEwODkwNTM2N30.abC-UvN2YOSaAwbrND4vHsRnbaHf_vdFbxkzyAdWX2Y";
 const sbH=t=>({apikey:SB_KEY,Authorization:"Bearer "+(t||SB_KEY),"Content-Type":"application/json"});
 let token=null,rows=[];
 try{token=sessionStorage.getItem("hl_tok")}catch(e){}
