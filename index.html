@@ -81,12 +81,6 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .list{display:flex;flex-direction:column;gap:8px;font-size:14px}
 .list li{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:10px 12px;list-style:none}
 ul.list{padding:0;margin:0}
-.case{width:100%;border-collapse:collapse;font-size:14px}
-.case th,.case td{text-align:left;vertical-align:top;padding:8px 10px;border-top:1px solid var(--line)}
-.case th{width:34%;font:500 12px/1.4 var(--f-mono);color:var(--muted);letter-spacing:.04em}
-.case-card{display:flex;flex-direction:column;gap:10px}
-.case-card h3{font:700 18px/1.25 var(--f-display);margin:0}
-.tag{font:500 11px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
 @media (max-width:520px){.row{grid-template-columns:1fr 44px}.row .lbl{grid-column:1/-1}.scale-key{font-size:10px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -212,8 +206,6 @@ function profileHTML(scores,title){
   return `<div class="profile"><div class="big"><strong>${avg.toFixed(1)}</strong><span>de 5 · nivel <b>${level(avg)}</b></span></div><p class="hint">${title}</p>
   ${DIMS.map((d,i)=>`<div class="row"><span class="lbl">${d.name}</span><span class="track"><i style="width:${scores[i]?(scores[i]/5*100):0}%"></i></span><span class="val">${scores[i]?scores[i].toFixed(1):"–"}</span></div>`).join("")}</div>`;
 }
-const encode=r=>"HL1:"+btoa(unescape(encodeURIComponent(JSON.stringify(r))));
-const decode=c=>JSON.parse(decodeURIComponent(escape(atob(c.trim().replace(/^HL1:/,"")))));
 
 /* ---------- Supabase ---------- */
 const SB_URL="https://ifgsfijkvpotkenbpaka.supabase.co";
@@ -246,84 +238,19 @@ form.addEventListener("submit",async e=>{
   if(missing){err.textContent=`Faltan ${missing} preguntas de la escala 1 a 5.`;return}
   err.textContent="";
   const btn=document.getElementById("send");btn.disabled=true;btn.textContent="Enviando…";
-  let saved=false;
-  try{await sbInsert(r);saved=true}catch(x){saved=false}
-  showDone(r,saved);
+  let ok=false;
+  for(let t=0;t<2&&!ok;t++){try{await sbInsert(r);ok=true}catch(x){await new Promise(z=>setTimeout(z,800))}}
+  if(!ok){err.textContent="No pudimos guardar sus respuestas. Revise su conexión e intente de nuevo; no se perdió nada de lo que contestó.";btn.disabled=false;btn.textContent="Enviar respuestas";return}
+  showDone(r);
 });
 
-function showDone(r,saved){
+function showDone(r){
   document.getElementById("view-enc").style.display="none";
   const v=document.getElementById("view-done");v.hidden=false;
-  const code=encode(r);
   v.innerHTML=`<h2>Gracias. Este es su perfil.</h2>
   ${profileHTML(dimScores(r),"Su percepción personal. En el taller verá el promedio del equipo.")}
-  ${agentBox()}
-  ${saved?`<div class="notice"><span class="dot"></span><p><b>Respuestas recibidas.</b> Ya puede cerrar esta página.</p></div>`:
-  `<div class="notice"><span class="dot" style="background:var(--accent)"></span><div style="display:flex;flex-direction:column;gap:10px;min-width:0;width:100%"><p><b>Un paso más:</b> copie este código y envíelo a la facilitadora por correo o WhatsApp. El código contiene solo sus respuestas, sin datos personales.</p><div class="code-box" id="code">${esc(code)}</div><div class="actions"><button class="btn" id="copy" type="button">Copiar código</button><span class="hint" id="copied"></span></div></div></div>`}`;
-  bindAgent(r);
-  const c=document.getElementById("copy");
-  if(c)c.onclick=async()=>{try{await navigator.clipboard.writeText(code);document.getElementById("copied").textContent="Copiado"}catch(x){const s=getSelection(),rg=document.createRange();rg.selectNodeContents(document.getElementById("code"));s.removeAllRanges();s.addRange(rg);document.getElementById("copied").textContent="Código seleccionado: use Ctrl+C"}};
+  <div class="notice"><span class="dot"></span><p><b>Respuestas recibidas.</b> Ya puede cerrar esta página.</p></div>`;
   window.scrollTo(0,0);
-}
-
-
-/* ---------- Agente de casos de uso ---------- */
-const CASE_FIELDS=[["problema","Problema o dolor que resuelve"],["beneficiario","Quién se beneficia"],["datos","Datos que necesita y dónde están"],["solucion","Solución con IA o automatización"],["metrica","Métrica de éxito"],["impacto","Impacto esperado"],["esfuerzo","Esfuerzo estimado"],["riesgos","Riesgos principales"],["primer_paso","Primer paso (2 semanas)"],["semaforo","Semáforo de uso"]];
-const caseHTML=c=>`<div class="case-card"><span class="tag">${esc(c.linea||"Caso de uso")}${c.borrador?" · borrador sin IA":""}</span><h3>${esc(c.nombre)}</h3><table class="case">${CASE_FIELDS.map(([k,l])=>`<tr><th>${l}</th><td>${esc(c[k])}</td></tr>`).join("")}</table></div>`;
-const caseText=c=>[c.nombre,...CASE_FIELDS.map(([k,l])=>`${l}: ${c[k]??""}`)].join("\n");
-async function callAgent(payload,tok){
-  const res=await fetch(SB_URL+"/functions/v1/generar-caso",{method:"POST",headers:sbH(tok),body:JSON.stringify(payload)});
-  if(!res.ok)throw new Error(res.status);
-  const d=await res.json();if(!d.casos?.length)throw new Error("vacío");return d.casos;
-}
-const LOCAL={
- est:["Tablero de iniciativas digitales con responsables","Gerencia","Las iniciativas digitales no tienen dueño ni seguimiento regular.","Equipo directivo","Lista de iniciativas y avances (hoy dispersa)","Resumen mensual de avances redactado con IA generativa a partir de las fichas de iniciativa.","Iniciativas con avance reportado a tiempo (%)","medio","bajo","No usar datos confidenciales de clientes al resumir.","Definir 3 iniciativas con dueño y fecha de revisión.","verde"],
- dat:["Informe automático de indicadores de operación","Central de monitoreo","Los indicadores se arman a mano y llegan tarde.","Gerencia y Operaciones","Registros de alarmas, novedades y tiempos de respuesta","Consolidar los registros en una hoja y generar el informe mensual con IA sobre datos anonimizados.","Horas mensuales dedicadas a informes","alto","bajo","Anonimizar datos antes de usar una IA pública.","Pedir a Operaciones 3 cifras base: alarmas, % falsas y tiempo de respuesta.","amarillo"],
- pro:["Informes de novedad redactados con IA","Vigilancia física","Se pierde tiempo entre el puesto y la oficina redactando informes.","Supervisores y Operaciones","Notas de turno sin nombres reales","Convertir notas sueltas en informe formal con un prompt estándar (Rol + Contexto + Tarea + Formato + Restricciones).","Minutos por informe antes y después","alto","bajo","Revisar siempre el texto antes de enviarlo al cliente.","Probar el prompt con 5 notas ficticias.","verde"],
- tec:["Activar analítica de video ya instalada","Seguridad electrónica","Los equipos instalados traen funciones de IA que no se usan ni se venden.","Clientes y área técnica","Cámaras y VMS actuales","Revisar con los fabricantes aliados qué analítica está disponible y activarla en un cliente piloto.","Falsas alarmas por mes en el piloto","alto","medio","Datos personales en video: Ley 1581 y Circular 002 de la SIC.","Inventariar funciones de IA de los equipos de 3 clientes.","amarillo"],
- per:["Banco de prompts y formación breve","Talento humano","Las personas no usan IA generativa por falta de práctica y de reglas claras.","Personal administrativo y directivo","Tareas reales de cada área, con datos ficticios","Taller corto y banco común de prompts por área, con el semáforo de uso.","Personas que usan IA al menos semanal (%)","medio","bajo","Mensaje claro: la IA apoya, no reemplaza.","Reunir 5 prompts útiles por área.","verde"],
- cli:["Reporte digital automático para el cliente","Comercial","El cliente pide información en tiempo real y hoy se entrega manualmente.","Clientes","Eventos y reportes del servicio","Plantilla de reporte mensual generada con IA a partir de los eventos del servicio.","Clientes que reciben reporte digital (%)","alto","medio","No exponer datos de otros clientes.","Elegir un cliente piloto y definir qué dato valoraría.","amarillo"]
-};
-function localCase(r){
-  const sc=dimScores(r);let mi=0;sc.forEach((v,i)=>{if(v!=null&&(sc[mi]==null||v<sc[mi]))mi=i});
-  const L=LOCAL[DIMS[mi].id],keys=["nombre","linea","problema","beneficiario","datos","solucion","metrica","impacto","esfuerzo","riesgos","primer_paso","semaforo"];
-  const c={borrador:true};keys.forEach((k,i)=>c[k]=L[i]);
-  if(r.pain)c.problema=`${L[2]} Lo que usted señaló: ${r.pain.slice(0,200)}`;
-  return c;
-}
-function bindAgent(r){
-  const b=document.getElementById("ag-btn");if(!b)return;
-  b.onclick=async()=>{
-    const msg=document.getElementById("ag-msg"),out=document.getElementById("ag-out");
-    b.disabled=true;msg.textContent="Generando…";out.innerHTML="";
-    const scores=DIMS.map((d,i)=>({dimension:d.name,puntaje:dimScores(r)[i]}));
-    let c;
-    try{c=(await callAgent({mode:"individual",scores,area:r.area,pain:r.pain,client:r.client,expect:r.expect,freq:r.freq,perc:r.perc,worry:r.worry}))[0];msg.textContent="";}
-    catch(e){c=localCase(r);msg.textContent="El agente no está disponible; se muestra un borrador base."}
-    out.innerHTML=caseHTML(c)+`<div class="actions"><button class="btn secondary" id="ag-copy" type="button">Copiar caso</button><button class="btn secondary" id="ag-again" type="button">Generar otro</button></div>`;
-    document.getElementById("ag-copy").onclick=()=>navigator.clipboard?.writeText(caseText(c));
-    document.getElementById("ag-again").onclick=()=>b.click();
-    b.disabled=false;b.textContent="Generar otro caso";
-  };
-}
-const agentBox=()=>`<div class="profile" id="ag"><h2>Agente de casos de uso</h2><p class="hint">Genera con IA un caso de uso para su área a partir de su perfil y de lo que escribió. Será insumo para el bloque 4 del taller. Los resultados son una propuesta que debe validarse.</p><div class="actions"><button class="btn" id="ag-btn" type="button">Generar mi caso</button><span class="hint" id="ag-msg" role="status"></span></div><div id="ag-out"></div></div>`;
-function bindAgentTeam(){
-  const b=document.getElementById("agt-btn");if(!b)return;
-  b.onclick=async()=>{
-    const msg=document.getElementById("agt-msg"),out=document.getElementById("agt-out");
-    b.disabled=true;msg.textContent="Generando casos del equipo… puede tardar unos segundos.";out.innerHTML="";
-    const per=rows.map(dimScores),n=rows.length;
-    const dims=DIMS.map((d,i)=>{const v=per.map(p=>p[i]).filter(x=>x);return {dimension:d.name,promedio:v.length?+(v.reduce((a,c)=>a+c,0)/v.length).toFixed(2):null}});
-    const low=LIKERT.map(k=>{const v=rows.map(r=>r.s?.[k]).filter(x=>x);return [k,v.reduce((a,c)=>a+c,0)/(v.length||1)]}).sort((a,c)=>a[1]-c[1]).slice(0,5).map(([k])=>DIMS.find(d=>k.startsWith(d.id)).qs[+k.slice(3)]);
-    const tally=l=>Object.fromEntries(countMap(l));
-    try{
-      const cs=await callAgent({mode:"equipo",n,dims,low,pain:rows.map(r=>r.pain).filter(Boolean),client:rows.map(r=>r.client).filter(Boolean),expect:rows.map(r=>r.expect).filter(Boolean),worry:tally(rows.flatMap(r=>r.worry||[])),freq:tally(rows.map(r=>r.freq))},token);
-      msg.textContent="";
-      out.innerHTML=cs.map((c,i)=>`<div class="profile"><span class="tag">Prioridad ${i+1}</span>${caseHTML(c)}</div>`).join("")+`<div class="actions"><button class="btn secondary" id="agt-copy" type="button">Copiar todos</button></div>`;
-      document.getElementById("agt-copy").onclick=()=>navigator.clipboard?.writeText(cs.map(caseText).join("\n\n"));
-    }catch(e){msg.textContent="No se pudo generar. Revise que la función generar-caso esté desplegada."}
-    b.disabled=false;
-  };
 }
 
 /* ---------- Vista de resultados (solo propietaria) ---------- */
@@ -352,10 +279,10 @@ function exportCSV(){
 
 function countMap(list){const m={};list.forEach(x=>{if(x)m[x]=(m[x]||0)+1});return Object.entries(m).sort((a,b)=>b[1]-a[1])}
 function bars(entries,total){return entries.map(([k,n])=>`<div class="row"><span class="lbl">${esc(k)}</span><span class="track"><i style="width:${n/total*100}%;background:var(--accent)"></i></span><span class="val">${n}</span></div>`).join("")}
-function renderRes(){renderBody();document.getElementById("view-res").insertAdjacentHTML("afterbegin",toolbar());bindToolbar();bindAgentTeam()}
+function renderRes(){renderBody();document.getElementById("view-res").insertAdjacentHTML("afterbegin",toolbar());bindToolbar()}
 function renderBody(){
   const v=document.getElementById("view-res");const n=rows.length;
-  if(!n){v.innerHTML=`<div class="profile"><h2>Aún no hay respuestas</h2><p class="hint">Cuando el equipo responda, aquí aparecerán el promedio por dimensión, el uso de IA, las preocupaciones y los comentarios abiertos. Si alguien le envió un código, péguelo abajo.</p></div>${pasteBox()}`;bindPaste();return}
+  if(!n){v.innerHTML=`<div class="profile"><h2>Aún no hay respuestas</h2><p class="hint">Cuando el equipo responda, aquí aparecerán el promedio por dimensión, el uso de IA, las preocupaciones y los comentarios abiertos.</p></div>`;return}
   const per=rows.map(dimScores);const avg=DIMS.map((_,i)=>{const v=per.map(p=>p[i]).filter(x=>x);return v.length?v.reduce((a,b)=>a+b,0)/v.length:null});
   const qAvg=LIKERT.map(k=>{const v=rows.map(r=>r.s?.[k]).filter(x=>x);return [k,v.reduce((a,b)=>a+b,0)/(v.length||1)]}).sort((a,b)=>a[1]-b[1]);
   const qText=k=>{const d=DIMS.find(d=>k.startsWith(d.id));return d.qs[+k.slice(3)]};
@@ -368,15 +295,8 @@ function renderBody(){
   <div class="profile"><h2>Principales preocupaciones</h2>${bars(countMap(rows.flatMap(r=>r.worry||[])),n)}</div>
   <div class="profile"><h2>Herramientas usadas</h2>${bars(countMap(rows.flatMap(r=>r.tools||[])),n)}</div>
   ${[["pain","Dónde perdemos tiempo o dinero"],["client","Lo que piden los clientes"],["expect","Lo que esperan del taller"]].map(([f,t])=>`<div class="profile"><h2>${t}</h2><ul class="list">${open(f).map(x=>`<li>${esc(x)}</li>`).join("")||'<li class="hint">Sin comentarios</li>'}</ul></div>`).join("")}
-  <div class="profile"><h2>Agente de casos de uso del equipo</h2><p class="hint">Propone 5 casos priorizados para el bloque 4 del taller, a partir de las brechas y los dolores del equipo. Se envía al modelo el texto de los comentarios abiertos; revíselos antes si contienen datos sensibles.</p><div class="actions"><button class="btn" id="agt-btn" type="button">Generar casos del equipo</button><span class="hint" id="agt-msg" role="status"></span></div><div id="agt-out" style="display:flex;flex-direction:column;gap:14px"></div></div>
-  ${pasteBox()}`;
-  bindPaste();
+  `;
 }
-function pasteBox(){return `<div class="profile"><h2>Agregar respuestas recibidas por código</h2><label class="hint" for="paste">Pegue uno o varios códigos HL1:, uno por línea.</label><textarea id="paste"></textarea><div class="actions"><button class="btn secondary" id="paste-btn" type="button">Agregar</button><span class="hint" id="paste-msg"></span></div></div>`}
-function bindPaste(){const b=document.getElementById("paste-btn");if(!b)return;b.onclick=async()=>{
-  const lines=document.getElementById("paste").value.split(/\s+/).filter(l=>l.startsWith("HL1:"));let ok=0,bad=0;
-  for(const l of lines){try{const r=decode(l);if(!r.s)throw 0;await sbInsert(r);rows.push(r);ok++}catch(x){bad++}}
-  const m=`${ok} agregadas${bad?`, ${bad} con error`:""}`;renderRes();document.getElementById("paste-msg").textContent=m;}}
 if(location.hash==="#resultados"){document.getElementById("tabs").hidden=false;tabR.onclick()}
 updateProgress();
 </script>
