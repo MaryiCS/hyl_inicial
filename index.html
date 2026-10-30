@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Pulso Digital Honor y Laurel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: una columna de lectura (máx. 760px), bloques por dimensión con escala 1-5 tipo panel de control; perfil final con barras por dimensión. */
+:root{
+  --bg:#F2F4F6; --surface:#FFFFFF; --ink:#13202D; --muted:#5A6774; --line:#D7DDE3;
+  --accent:#B86E00; --accent-soft:#F6E7CF; --steel:#2C4A66; --ok:#2E7D4F;
+  --f-display:"Archivo","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0D141B; --surface:#152029; --ink:#E6ECF1; --muted:#97A5B2; --line:#2A3846;
+  --accent:#F0A63A; --accent-soft:#3A2A12; --steel:#8DB4D8; --ok:#6CC592; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0D141B; --surface:#152029; --ink:#E6ECF1; --muted:#97A5B2; --line:#2A3846;
+  --accent:#F0A63A; --accent-soft:#3A2A12; --steel:#8DB4D8; --ok:#6CC592; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:16px/1.55 var(--f-body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 64px}
+.wrap{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:28px}
+header .eyebrow{font:500 12px/1 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+h1{font:800 clamp(30px,6vw,46px)/1.05 var(--f-display);font-stretch:80%;margin:10px 0 12px;text-wrap:balance;letter-spacing:-.01em}
+h2{font:700 22px/1.2 var(--f-display);font-stretch:85%;margin:0;text-wrap:balance}
+p{margin:0}
+.lead{color:var(--muted);max-width:62ch}
+.notice{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:14px 16px;font-size:14px;color:var(--muted)}
+.notice b{color:var(--ink)}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--ok);flex:none;margin-top:6px;box-shadow:0 0 0 4px color-mix(in srgb,var(--ok) 20%,transparent)}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line)}
+.tabs button{font:600 14px var(--f-body);background:none;border:0;color:var(--muted);padding:10px 14px;border-bottom:2px solid transparent;cursor:pointer}
+.tabs button[aria-selected="true"]{color:var(--ink);border-color:var(--accent)}
+.scale-key{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;font:500 11px/1.3 var(--f-mono);color:var(--muted);text-align:center}
+.scale-key span b{display:block;font-size:15px;color:var(--ink)}
+section.dim{display:flex;flex-direction:column;gap:18px;padding-top:6px}
+.dim-head{display:flex;align-items:baseline;gap:12px;border-top:2px solid var(--ink);padding-top:14px}
+.dim-head .code{font:500 12px var(--f-mono);color:var(--accent);letter-spacing:.08em}
+.q{display:flex;flex-direction:column;gap:10px}
+.q > label,.q > .qt{font-weight:500}
+.likert{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.likert input{position:absolute;opacity:0;pointer-events:none}
+.likert label{display:flex;align-items:center;justify-content:center;height:44px;border:1px solid var(--line);background:var(--surface);border-radius:4px;font:500 15px var(--f-mono);cursor:pointer;transition:background .12s,border-color .12s}
+.likert label:hover{border-color:var(--steel)}
+.likert input:checked + label{background:var(--accent);border-color:var(--accent);color:#fff}
+.likert input:focus-visible + label,.chips input:focus-visible + label{outline:2px solid var(--steel);outline-offset:2px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips input{position:absolute;opacity:0;pointer-events:none}
+.chips label{border:1px solid var(--line);background:var(--surface);padding:8px 12px;border-radius:999px;font-size:14px;cursor:pointer}
+.chips input:checked + label{background:var(--accent-soft);border-color:var(--accent);color:var(--ink)}
+textarea,select{width:100%;font:15px/1.5 var(--f-body);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:10px 12px}
+textarea{min-height:88px;resize:vertical}
+textarea:focus,select:focus{outline:2px solid var(--steel);outline-offset:1px}
+.hint{font-size:13px;color:var(--muted)}
+.actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.btn{font:600 15px var(--f-body);background:var(--ink);color:var(--bg);border:0;border-radius:4px;padding:12px 20px;cursor:pointer}
+.btn.secondary{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.err{color:var(--accent);font-size:14px}
+.progress{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding:10px 0;display:flex;align-items:center;gap:12px;font:500 12px var(--f-mono);color:var(--muted)}
+.progress .bar{flex:1;height:4px;background:var(--line);border-radius:2px;overflow:hidden}
+.progress .bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.profile{display:flex;flex-direction:column;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:20px}
+.row{display:grid;grid-template-columns:minmax(0,190px) 1fr 48px;gap:12px;align-items:center;font-size:14px}
+.row .track{height:12px;background:var(--line);border-radius:2px;position:relative;overflow:hidden}
+.row .track i{position:absolute;inset:0 auto 0 0;background:var(--steel)}
+.row .val{font:500 14px var(--f-mono);text-align:right;font-variant-numeric:tabular-nums}
+.big{display:flex;gap:16px;align-items:baseline;flex-wrap:wrap}
+.big strong{font:800 44px/1 var(--f-display);font-stretch:80%;color:var(--accent)}
+.code-box{font:13px/1.4 var(--f-mono);word-break:break-all;background:var(--bg);border:1px dashed var(--line);padding:12px;border-radius:4px;max-height:140px;overflow:auto}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:14px}
+.kpi span{display:block;font:500 11px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.kpi b{font:800 30px/1.1 var(--f-display);font-stretch:85%;font-variant-numeric:tabular-nums}
+.list{display:flex;flex-direction:column;gap:8px;font-size:14px}
+.list li{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:10px 12px;list-style:none}
+ul.list{padding:0;margin:0}
+@media (max-width:520px){.row{grid-template-columns:1fr 44px}.row .lbl{grid-column:1/-1}.scale-key{font-size:10px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Taller IA y transformación digital · Equipo directivo</div>
+    <h1>Pulso digital de Honor y Laurel</h1>
+    <p class="lead">Diez minutos para saber desde dónde partimos. Sus respuestas alimentan la apertura del taller: veremos los resultados del equipo en conjunto, nunca los de una persona.</p>
+  </header>
+
+  <div class="notice"><span class="dot"></span><p><b>Encuesta anónima.</b> No pedimos nombre, correo ni cargo, y no se guarda quién responde. El área es opcional; si el equipo es pequeño, puede omitirla.</p></div>
+
+  <nav class="tabs" id="tabs" hidden>
+    <button id="tab-enc" aria-selected="true">Encuesta</button>
+    <button id="tab-res" aria-selected="false">Resultados del equipo</button>
+  </nav>
+
+  <div id="view-enc" style="display:flex;flex-direction:column;gap:28px">
+    <div class="progress"><span id="prog-txt">0 / 18</span><div class="bar"><i id="prog-bar"></i></div></div>
+
+    <div class="scale-key" aria-hidden="true">
+      <span><b>1</b>No existe</span><span><b>2</b>Inicial</span><span><b>3</b>En desarrollo</span><span><b>4</b>Establecido</span><span><b>5</b>Referente</span>
+    </div>
+
+    <form id="form" novalidate style="display:flex;flex-direction:column;gap:36px"></form>
+  </div>
+
+  <div id="view-done" hidden style="display:flex;flex-direction:column;gap:20px"></div>
+  <div id="view-res" hidden style="display:flex;flex-direction:column;gap:20px"></div>
+</div>
+
+<script>
+const DIMS=[
+ {id:"est",code:"D1",name:"Estrategia y liderazgo",qs:[
+  "La transformación digital y la IA hacen parte explícita de la estrategia de la empresa, con metas y presupuesto.",
+  "El equipo directivo comparte una visión clara de cómo la tecnología cambiará el negocio de la seguridad en los próximos 3 años.",
+  "Existen responsables definidos para impulsar iniciativas digitales y se les hace seguimiento."]},
+ {id:"dat",code:"D2",name:"Datos e información",qs:[
+  "La información de la operación (novedades, alarmas, rondas, rastreo, incidentes) se registra en sistemas digitales y no en papel o chats sueltos.",
+  "Contamos con indicadores confiables y actualizados para tomar decisiones (por ejemplo, falsas alarmas, tiempos de respuesta, rotación, rentabilidad por contrato).",
+  "Sabemos qué datos personales manejamos (video, biometría, ubicación) y tenemos políticas claras para protegerlos."]},
+ {id:"pro",code:"D3",name:"Procesos y operación",qs:[
+  "Los procesos clave (programación de turnos, central de monitoreo, mantenimientos, facturación) están documentados y estandarizados.",
+  "Hemos automatizado tareas repetitivas, como informes, conciliaciones o alertas.",
+  "Medimos y mejoramos de forma continua la eficiencia de la operación."]},
+ {id:"tec",code:"D4",name:"Tecnología e integración",qs:[
+  "Nuestras plataformas (VMS, control de acceso, rastreo GPS, ERP, nómina) están integradas y comparten información.",
+  "Usamos analítica de video u otras capacidades inteligentes en las soluciones que entregamos al cliente.",
+  "La ciberseguridad de nuestros sistemas y de los de nuestros clientes se gestiona de forma activa."]},
+ {id:"per",code:"D5",name:"Personas y cultura",qs:[
+  "Las personas de la organización tienen las habilidades digitales que su cargo requiere hoy.",
+  "Hay espacio para experimentar con nuevas herramientas, aunque algunas pruebas no funcionen.",
+  "Existe un plan de formación para que el personal operativo y administrativo se adapte a la tecnología."]},
+ {id:"cli",code:"D6",name:"Cliente y propuesta de valor",qs:[
+  "Ofrecemos al cliente información en tiempo real o reportes digitales sobre el servicio (portal, app, tablero).",
+  "La tecnología nos diferencia frente a la competencia en las licitaciones y renovaciones.",
+  "Recogemos y analizamos la retroalimentación del cliente para mejorar el servicio."]}
+];
+const AREAS=["Gerencia general","Operaciones / vigilancia física","Tecnología / seguridad electrónica","Central de monitoreo","Comercial","Administrativa y financiera","Talento humano","Otra","Prefiero no decirlo"];
+const FREQ=["Nunca","Lo he probado alguna vez","Algunas veces al mes","Varias veces por semana","A diario"];
+const TOOLS=["ChatGPT","Claude","Gemini","Microsoft Copilot","Funciones de IA en el VMS o cámaras","Ninguna","Otra"];
+const PERC=["Más amenaza que oportunidad","Ambas por igual","Más oportunidad que amenaza","Una gran oportunidad"];
+const WORRY=["Costos","Seguridad de la información","Reemplazo de empleos","Falta de habilidades","Cumplimiento legal y datos personales","Que no genere resultados","Resistencia al cambio","Ninguna en particular"];
+const LEVELS=[[1.8,"Inicial"],[2.6,"Exploración"],[3.4,"En desarrollo"],[4.2,"Establecido"],[5.01,"Referente"]];
+const level=s=>LEVELS.find(l=>s<l[0])[1];
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+const form=document.getElementById("form");
+let html="";
+DIMS.forEach((d,di)=>{
+  html+=`<section class="dim"><div class="dim-head"><span class="code">${d.code}</span><h2>${d.name}</h2></div>`;
+  d.qs.forEach((q,qi)=>{
+    const n=`${d.id}${qi}`;
+    html+=`<div class="q" role="radiogroup" aria-labelledby="t-${n}"><div class="qt" id="t-${n}">${q}</div><div class="likert">`;
+    for(let v=1;v<=5;v++) html+=`<input type="radio" name="${n}" id="${n}-${v}" value="${v}"><label for="${n}-${v}">${v}</label>`;
+    html+=`</div></div>`;
+  });
+  html+=`</section>`;
+});
+const chips=(name,opts,type)=>`<div class="chips">${opts.map((o,i)=>`<input type="${type}" name="${name}" id="${name}-${i}" value="${esc(o)}"><label for="${name}-${i}">${esc(o)}</label>`).join("")}</div>`;
+html+=`<section class="dim"><div class="dim-head"><span class="code">D7</span><h2>Su relación con la IA</h2></div>
+ <div class="q"><div class="qt">¿Con qué frecuencia usa herramientas de IA generativa en su trabajo?</div>${chips("freq",FREQ,"radio")}</div>
+ <div class="q"><div class="qt">¿Cuáles ha usado? <span class="hint">(varias opciones)</span></div>${chips("tools",TOOLS,"checkbox")}</div>
+ <div class="q"><div class="qt">Para una empresa de seguridad como la nuestra, la IA es…</div>${chips("perc",PERC,"radio")}</div>
+ <div class="q"><div class="qt">¿Qué le preocupa más de adoptar IA? <span class="hint">(hasta tres)</span></div>${chips("worry",WORRY,"checkbox")}</div>
+</section>
+<section class="dim"><div class="dim-head"><span class="code">D8</span><h2>En sus palabras</h2></div>
+ <div class="q"><label for="pain">¿Qué proceso o tarea le hace perder más tiempo o dinero a la empresa hoy?</label><textarea id="pain" name="pain" maxlength="600"></textarea></div>
+ <div class="q"><label for="client">¿Qué le están pidiendo los clientes que hoy nos cuesta entregar?</label><textarea id="client" name="client" maxlength="600"></textarea></div>
+ <div class="q"><label for="expect">¿Qué necesita llevarse del taller para que valga la pena?</label><textarea id="expect" name="expect" maxlength="600"></textarea></div>
+ <div class="q"><label for="area">Área (opcional)</label><select id="area" name="area"><option value="">Sin responder</option>${AREAS.map(a=>`<option>${esc(a)}</option>`).join("")}</select></div>
+</section>
+<div class="actions"><button class="btn" type="submit" id="send">Enviar respuestas</button><span class="err" id="err" role="alert"></span></div>`;
+form.innerHTML=html;
+
+const LIKERT=DIMS.flatMap(d=>d.qs.map((_,i)=>d.id+i));
+function updateProgress(){
+  const n=LIKERT.filter(k=>form.querySelector(`input[name="${k}"]:checked`)).length;
+  document.getElementById("prog-txt").textContent=`${n} / ${LIKERT.length}`;
+  document.getElementById("prog-bar").style.width=(n/LIKERT.length*100)+"%";
+}
+form.addEventListener("change",e=>{
+  if(e.target.name==="worry"){const c=[...form.querySelectorAll('input[name="worry"]:checked')];if(c.length>3)e.target.checked=false;}
+  updateProgress();
+});
+
+function collect(){
+  const r={v:1,t:new Date().toISOString().slice(0,10),s:{}};
+  LIKERT.forEach(k=>{const el=form.querySelector(`input[name="${k}"]:checked`);r.s[k]=el?+el.value:null});
+  const one=n=>form.querySelector(`input[name="${n}"]:checked`)?.value||"";
+  const many=n=>[...form.querySelectorAll(`input[name="${n}"]:checked`)].map(e=>e.value);
+  r.freq=one("freq");r.perc=one("perc");r.tools=many("tools");r.worry=many("worry");
+  r.pain=form.pain.value.trim();r.client=form.client.value.trim();r.expect=form.expect.value.trim();r.area=form.area.value;
+  return r;
+}
+function dimScores(r){return DIMS.map(d=>{const v=d.qs.map((_,i)=>r.s[d.id+i]).filter(x=>x);return v.length?v.reduce((a,b)=>a+b,0)/v.length:null})}
+function profileHTML(scores,title){
+  const valid=scores.filter(x=>x!=null);const avg=valid.reduce((a,b)=>a+b,0)/(valid.length||1);
+  return `<div class="profile"><div class="big"><strong>${avg.toFixed(1)}</strong><span>de 5 · nivel <b>${level(avg)}</b></span></div><p class="hint">${title}</p>
+  ${DIMS.map((d,i)=>`<div class="row"><span class="lbl">${d.name}</span><span class="track"><i style="width:${scores[i]?(scores[i]/5*100):0}%"></i></span><span class="val">${scores[i]?scores[i].toFixed(1):"–"}</span></div>`).join("")}</div>`;
+}
+const encode=r=>"HL1:"+btoa(unescape(encodeURIComponent(JSON.stringify(r))));
+const decode=c=>JSON.parse(decodeURIComponent(escape(atob(c.trim().replace(/^HL1:/,"")))));
+
+let db=null,user=null;
+(async()=>{
+  try{db=await window.claude?.use?.("db")}catch(e){db=null}
+  try{user=await window.claude?.use?.("user")}catch(e){user=null}
+  let owner=false;try{owner=user?!!(await user.isOwner()):false}catch(e){owner=false}
+  if((owner&&db)||!db){document.getElementById("tabs").hidden=!(owner&&db)&&location.hash!=="#resultados";}
+  if(!db&&location.hash==="#resultados")tabR.onclick();
+})();
+
+form.addEventListener("submit",async e=>{
+  e.preventDefault();
+  const r=collect();
+  const missing=LIKERT.filter(k=>r.s[k]==null).length;
+  const err=document.getElementById("err");
+  if(missing){err.textContent=`Faltan ${missing} preguntas de la escala 1 a 5.`;return}
+  err.textContent="";
+  const btn=document.getElementById("send");btn.disabled=true;btn.textContent="Enviando…";
+  let saved=false;
+  if(db){try{await db.collection("respuestas").add(r);saved=true}catch(x){saved=false}}
+  showDone(r,saved);
+});
+
+function showDone(r,saved){
+  document.getElementById("view-enc").style.display="none";
+  const v=document.getElementById("view-done");v.hidden=false;
+  const code=encode(r);
+  v.innerHTML=`<h2>Gracias. Este es su perfil.</h2>
+  ${profileHTML(dimScores(r),"Su percepción personal. En el taller verá el promedio del equipo.")}
+  ${saved?`<div class="notice"><span class="dot"></span><p><b>Respuestas recibidas.</b> Ya puede cerrar esta página.</p></div>`:
+  `<div class="notice"><span class="dot" style="background:var(--accent)"></span><div style="display:flex;flex-direction:column;gap:10px;min-width:0;width:100%"><p><b>Un paso más:</b> copie este código y envíelo a la facilitadora por correo o WhatsApp. El código contiene solo sus respuestas, sin datos personales.</p><div class="code-box" id="code">${esc(code)}</div><div class="actions"><button class="btn" id="copy" type="button">Copiar código</button><span class="hint" id="copied"></span></div></div></div>`}`;
+  const c=document.getElementById("copy");
+  if(c)c.onclick=async()=>{try{await navigator.clipboard.writeText(code);document.getElementById("copied").textContent="Copiado"}catch(x){const s=getSelection(),rg=document.createRange();rg.selectNodeContents(document.getElementById("code"));s.removeAllRanges();s.addRange(rg);document.getElementById("copied").textContent="Código seleccionado: use Ctrl+C"}};
+  window.scrollTo(0,0);
+}
+
+/* ---------- Vista de resultados (solo propietaria) ---------- */
+let unsub=null,rows=[];
+const tabE=document.getElementById("tab-enc"),tabR=document.getElementById("tab-res");
+tabE.onclick=()=>{tabE.setAttribute("aria-selected","true");tabR.setAttribute("aria-selected","false");document.getElementById("view-res").hidden=true;document.getElementById("view-enc").style.display="flex"};
+tabR.onclick=()=>{tabR.setAttribute("aria-selected","true");tabE.setAttribute("aria-selected","false");document.getElementById("view-enc").style.display="none";document.getElementById("view-done").hidden=true;document.getElementById("view-res").hidden=false;
+  if(!db){renderRes();return}
+  if(!unsub){renderRes();unsub=db.collection("respuestas").onSnapshot(s=>{rows=s.docs.map(d=>d.data());renderRes()},()=>{})}};
+
+function countMap(list){const m={};list.forEach(x=>{if(x)m[x]=(m[x]||0)+1});return Object.entries(m).sort((a,b)=>b[1]-a[1])}
+function bars(entries,total){return entries.map(([k,n])=>`<div class="row"><span class="lbl">${esc(k)}</span><span class="track"><i style="width:${n/total*100}%;background:var(--accent)"></i></span><span class="val">${n}</span></div>`).join("")}
+function renderRes(){
+  const v=document.getElementById("view-res");const n=rows.length;
+  if(!n){v.innerHTML=`<div class="profile"><h2>Aún no hay respuestas</h2><p class="hint">Cuando el equipo responda, aquí aparecerán el promedio por dimensión, el uso de IA, las preocupaciones y los comentarios abiertos. Si alguien le envió un código, péguelo abajo.</p></div>${pasteBox()}`;bindPaste();return}
+  const per=rows.map(dimScores);const avg=DIMS.map((_,i)=>{const v=per.map(p=>p[i]).filter(x=>x);return v.length?v.reduce((a,b)=>a+b,0)/v.length:null});
+  const qAvg=LIKERT.map(k=>{const v=rows.map(r=>r.s?.[k]).filter(x=>x);return [k,v.reduce((a,b)=>a+b,0)/(v.length||1)]}).sort((a,b)=>a[1]-b[1]);
+  const qText=k=>{const d=DIMS.find(d=>k.startsWith(d.id));return d.qs[+k.slice(3)]};
+  const open=f=>rows.map(r=>r[f]).filter(Boolean);
+  v.innerHTML=`<div class="kpis"><div class="kpi"><span>Respuestas</span><b>${n}</b></div><div class="kpi"><span>Promedio</span><b>${(avg.filter(x=>x).reduce((a,b)=>a+b,0)/avg.filter(x=>x).length).toFixed(1)}</b></div><div class="kpi"><span>Usa IA semanal o más</span><b>${Math.round(rows.filter(r=>["Varias veces por semana","A diario"].includes(r.freq)).length/n*100)}%</b></div></div>
+  ${profileHTML(avg,"Promedio del equipo por dimensión.")}
+  <div class="profile"><h2>Las tres afirmaciones con menor puntaje</h2><ul class="list">${qAvg.slice(0,3).map(([k,s])=>`<li><b style="font-family:var(--f-mono)">${s.toFixed(1)}</b> · ${esc(qText(k))}</li>`).join("")}</ul></div>
+  <div class="profile"><h2>Frecuencia de uso de IA</h2>${bars(FREQ.map(f=>[f,rows.filter(r=>r.freq===f).length]),n)}</div>
+  <div class="profile"><h2>Percepción</h2>${bars(PERC.map(f=>[f,rows.filter(r=>r.perc===f).length]),n)}</div>
+  <div class="profile"><h2>Principales preocupaciones</h2>${bars(countMap(rows.flatMap(r=>r.worry||[])),n)}</div>
+  <div class="profile"><h2>Herramientas usadas</h2>${bars(countMap(rows.flatMap(r=>r.tools||[])),n)}</div>
+  ${[["pain","Dónde perdemos tiempo o dinero"],["client","Lo que piden los clientes"],["expect","Lo que esperan del taller"]].map(([f,t])=>`<div class="profile"><h2>${t}</h2><ul class="list">${open(f).map(x=>`<li>${esc(x)}</li>`).join("")||'<li class="hint">Sin comentarios</li>'}</ul></div>`).join("")}
+  ${pasteBox()}`;
+  bindPaste();
+}
+function pasteBox(){return `<div class="profile"><h2>Agregar respuestas recibidas por código</h2><label class="hint" for="paste">Pegue uno o varios códigos HL1:, uno por línea.</label><textarea id="paste"></textarea><div class="actions"><button class="btn secondary" id="paste-btn" type="button">Agregar</button><span class="hint" id="paste-msg"></span></div></div>`}
+function bindPaste(){const b=document.getElementById("paste-btn");if(!b)return;b.onclick=async()=>{
+  const lines=document.getElementById("paste").value.split(/\s+/).filter(l=>l.startsWith("HL1:"));let ok=0,bad=0;
+  for(const l of lines){try{const r=decode(l);if(!r.s)throw 0;if(db)await db.collection("respuestas").add(r);else rows.push(r);ok++}catch(x){bad++}}
+  if(!db)renderRes();
+  document.getElementById("paste-msg").textContent=`${ok} agregadas${bad?`, ${bad} con error`:""}`;}}
+updateProgress();
+</script>
+
+</body>
+</html>
